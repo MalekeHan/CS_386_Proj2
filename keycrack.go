@@ -54,31 +54,32 @@ type keypair struct {
 // use, and you may define whatever helper functions or import whatever packages
 // you need.
 func crack(texts []textpair) keypair {
-	var crackedKeys keypair
-	// Brute-force each key in its entire space (24 bits = 2^24 possibilities)
-	for key1 := 0; key1 < (1 << 24); key1++ {
-		for key2 := 0; key2 < (1 << 24); key2++ {
-			// Assume correct keys if at least one pair matches.
-			// This is overly simplistic and might need refinement.
-			if checkKeys(uint32(key1), uint32(key2), texts) {
-				crackedKeys.key1 = uint32(key1)
-				crackedKeys.key2 = uint32(key2)
-				return crackedKeys
+	// Create a map to store the midway ciphertexts for each key guess.
+	midpointMap := make(map[string]uint32)
+
+	// Encrypt the plaintext with each possible key and store the results.
+	for keyGuess := 0; keyGuess < (1 << 24); keyGuess++ {
+		for _, pair := range texts {
+			encryptedMid := encrypt(uint32(keyGuess), pair.plaintext)
+			midpointMap[hex.EncodeToString(encryptedMid[:])] = uint32(keyGuess)
+		}
+	}
+
+	// Decrypt the ciphertext with each possible key and check for matches.
+	for keyGuess := 0; keyGuess < (1 << 24); keyGuess++ {
+		for _, pair := range texts {
+			decryptedMid := decrypt(uint32(keyGuess), pair.ciphertext)
+			decryptedMidHex := hex.EncodeToString(decryptedMid[:])
+
+			if originalKey, found := midpointMap[decryptedMidHex]; found {
+				// If a match is found, we have our potential key pair.
+				return keypair{key1: originalKey, key2: uint32(keyGuess)}
 			}
 		}
 	}
-	return crackedKeys // Return zeros if not found (highly unlikely with correct implementation)
-}
 
-func checkKeys(key1, key2 uint32, texts []textpair) bool {
-	// Verify if the given keys correctly encrypt or decrypt at least one pair
-	for _, pair := range texts {
-		encrypted := doubleEncrypt(key1, key2, pair.plaintext)
-		if encrypted == pair.ciphertext {
-			return true // Found a matching pair
-		}
-	}
-	return false
+	// If no keys are found, return a keypair with zero values.
+	return keypair{key1: 0, key2: 0}
 }
 
 /*************************** Provided Helper Code *****************************/
