@@ -58,25 +58,29 @@ func crack(texts []textpair) keypair {
 
 	// Encrypt the plaintext with each possible 24-bit key and store the result
 	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ {
-		for _, text := range texts {
-			encryptedMid := encrypt(keyGuess, text.plaintext)
-			midpointMap[hex.EncodeToString(encryptedMid[:])] = keyGuess
-		}
+		encryptedMid := encrypt(keyGuess, texts[0].plaintext)
+		midpointMap[hex.EncodeToString(encryptedMid[:])] = keyGuess
 	}
 
 	// Decrypt the ciphertext with each possible 24-bit key and look for matches in the map
 	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ {
-		for _, text := range texts {
-			decryptedMid := decrypt(keyGuess, text.ciphertext)
-			decryptedMidHex := hex.EncodeToString(decryptedMid[:])
-			if matchedKey, found := midpointMap[decryptedMidHex]; found {
-				// We found a matching intermediate value
+		decryptedMid := decrypt(keyGuess, texts[0].ciphertext)
+		decryptedMidHex := hex.EncodeToString(decryptedMid[:])
+		if matchedKey, found := midpointMap[decryptedMidHex]; found {
+			// Verify the potential keys with double encryption
+			if testDoubleEncryption(matchedKey, keyGuess, texts[0].plaintext, texts[0].ciphertext) {
 				return keypair{key1: matchedKey, key2: keyGuess}
 			}
 		}
 	}
 
 	return keypair{key1: 0, key2: 0} // Return zeroed keypair if no match is found
+}
+
+// Verify the potential keys with double encryption
+func testDoubleEncryption(key1, key2 uint32, plaintext, ciphertext [8]byte) bool {
+	testCiphertext := doubleEncrypt(key1, key2, plaintext)
+	return testCiphertext == ciphertext
 }
 
 /*************************** Provided Helper Code *****************************/
