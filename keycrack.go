@@ -54,32 +54,29 @@ type keypair struct {
 // use, and you may define whatever helper functions or import whatever packages
 // you need.
 func crack(texts []textpair) keypair {
-	// Create a map to store the midway ciphertexts for each key guess.
 	midpointMap := make(map[string]uint32)
+	var k0, k1 uint32
 
-	// Encrypt the plaintext with each possible key and store the results.
-	for keyGuess := 0; keyGuess < (1 << 24); keyGuess++ {
-		for _, pair := range texts {
-			encryptedMid := encrypt(uint32(keyGuess), pair.plaintext)
-			midpointMap[hex.EncodeToString(encryptedMid[:])] = uint32(keyGuess)
+	// Encrypt the plaintext with every possible 24-bit key k0 and store the result
+	for k0 = 0; k0 < (1 << 24); k0++ {
+		for _, text := range texts {
+			mPrime := encrypt(k0, text.plaintext)
+			midpointMap[hex.EncodeToString(mPrime[:])] = k0
 		}
 	}
 
-	// Decrypt the ciphertext with each possible key and check for matches.
-	for keyGuess := 0; keyGuess < (1 << 24); keyGuess++ {
-		for _, pair := range texts {
-			decryptedMid := decrypt(uint32(keyGuess), pair.ciphertext)
-			decryptedMidHex := hex.EncodeToString(decryptedMid[:])
-
-			if originalKey, found := midpointMap[decryptedMidHex]; found {
-				// If a match is found, we have our potential key pair.
-				return keypair{key1: originalKey, key2: uint32(keyGuess)}
+	// Decrypt the ciphertext with every possible 24-bit key k1 and check for matches
+	for k1 = 0; k1 < (1 << 24); k1++ {
+		for _, text := range texts {
+			cPrime := decrypt(k1, text.ciphertext)
+			cPrimeHex := hex.EncodeToString(cPrime[:])
+			if matchedK0, found := midpointMap[cPrimeHex]; found {
+				return keypair{key1: matchedK0, key2: k1}
 			}
 		}
 	}
 
-	// If no keys are found, return a keypair with zero values.
-	return keypair{key1: 0, key2: 0}
+	return keypair{key1: 0, key2: 0} // Return zeroed keys if no match is found
 }
 
 /*************************** Provided Helper Code *****************************/
