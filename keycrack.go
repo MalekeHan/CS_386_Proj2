@@ -54,30 +54,28 @@ type keypair struct {
 // use, and you may define whatever helper functions or import whatever packages
 // you need.
 func crack(texts []textpair) keypair {
-	midpointMap := make(map[string]uint32)
+	cPrimeMap := make(map[string]uint32)
 
-	// Encrypt the plaintext with each possible 24-bit key and store the result
-	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ {
-		encryptedMid := encrypt(keyGuess, texts[0].plaintext)
-		midpointMap[hex.EncodeToString(encryptedMid[:])] = keyGuess
+	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ { //use bit-wise here to loop 2^24 times and exhaust the space
+		encryptedMid := encrypt(keyGuess, texts[0].plaintext)     //do the inner encyption with whatever key we are in and the plaintext
+		cPrimeMap[hex.EncodeToString(encryptedMid[:])] = keyGuess // create a new entry in our map [c_prime |-> key_guess]
 	}
 
-	// Decrypt the ciphertext with each possible 24-bit key and look for matches in the map
-	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ {
-		decryptedMid := decrypt(keyGuess, texts[0].ciphertext)
-		decryptedMidHex := hex.EncodeToString(decryptedMid[:])
-		if matchedKey, found := midpointMap[decryptedMidHex]; found {
-			// Verify the potential keys with double encryption
-			if testDoubleEncryption(matchedKey, keyGuess, texts[0].plaintext, texts[0].ciphertext) {
+	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ { //use bit-wise here to loop 2^24 times and exhaust the space
+		decryptedMid := decrypt(keyGuess, texts[0].ciphertext)      //do decryption with whatever key we are in and the ciphertext in the same row as the plaintext
+		decryptedMidHex := hex.EncodeToString(decryptedMid[:])      // we now convert this to a hex value
+		if matchedKey, found := cPrimeMap[decryptedMidHex]; found { //checks if the hex of the decrpyted plaintext is a key in the cPrimeMap : E(k_0, m) = C' = D(k_1, c)
+
+			if testDoubleEncryption(matchedKey, keyGuess, texts[0].plaintext, texts[0].ciphertext) { // we use double encyption to verify if this is the actual correct key pair
 				return keypair{key1: matchedKey, key2: keyGuess}
 			}
 		}
 	}
 
-	return keypair{key1: 0, key2: 0} // Return zeroed keypair if no match is found
+	return keypair{key1: 0, key2: 0} // return all 0s if nothing is found
 }
 
-// Verify the potential keys with double encryption
+// verication function to test if a key pair is actually correct
 func testDoubleEncryption(key1, key2 uint32, plaintext, ciphertext [8]byte) bool {
 	testCiphertext := doubleEncrypt(key1, key2, plaintext)
 	return testCiphertext == ciphertext
