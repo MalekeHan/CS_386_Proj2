@@ -55,28 +55,28 @@ type keypair struct {
 // you need.
 func crack(texts []textpair) keypair {
 	midpointMap := make(map[string]uint32)
-	var k0, k1 uint32
 
-	// Encrypt the plaintext with every possible 24-bit key k0 and store the result
-	for k0 = 0; k0 < (1 << 24); k0++ {
+	// Encrypt the plaintext with each possible 24-bit key and store the result
+	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ {
 		for _, text := range texts {
-			mPrime := encrypt(k0, text.plaintext)
-			midpointMap[hex.EncodeToString(mPrime[:])] = k0
+			encryptedMid := encrypt(keyGuess, text.plaintext)
+			midpointMap[hex.EncodeToString(encryptedMid[:])] = keyGuess
 		}
 	}
 
-	// Decrypt the ciphertext with every possible 24-bit key k1 and check for matches
-	for k1 = 0; k1 < (1 << 24); k1++ {
+	// Decrypt the ciphertext with each possible 24-bit key and look for matches in the map
+	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ {
 		for _, text := range texts {
-			cPrime := decrypt(k1, text.ciphertext)
-			cPrimeHex := hex.EncodeToString(cPrime[:])
-			if matchedK0, found := midpointMap[cPrimeHex]; found {
-				return keypair{key1: matchedK0, key2: k1}
+			decryptedMid := decrypt(keyGuess, text.ciphertext)
+			decryptedMidHex := hex.EncodeToString(decryptedMid[:])
+			if matchedKey, found := midpointMap[decryptedMidHex]; found {
+				// We found a matching intermediate value
+				return keypair{key1: matchedKey, key2: keyGuess}
 			}
 		}
 	}
 
-	return keypair{key1: 0, key2: 0} // Return zeroed keys if no match is found
+	return keypair{key1: 0, key2: 0} // Return zeroed keypair if no match is found
 }
 
 /*************************** Provided Helper Code *****************************/
