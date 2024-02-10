@@ -72,7 +72,7 @@ func crack(texts []textpair) keypair {
 		}
 	}
 
-	return keypair{key1: 0, key2: 0} // return all 0s if nothing is found
+	return keypair{key1: 0, key2: 0} // return all 0s if nothing is found.
 }
 
 // verication function to test if a key pair is actually correct
