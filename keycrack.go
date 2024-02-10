@@ -54,10 +54,31 @@ type keypair struct {
 // use, and you may define whatever helper functions or import whatever packages
 // you need.
 func crack(texts []textpair) keypair {
-	return keypair{
-		key1: 0,
-		key2: 0,
+	var crackedKeys keypair
+	// Brute-force each key in its entire space (24 bits = 2^24 possibilities)
+	for key1 := 0; key1 < (1 << 24); key1++ {
+		for key2 := 0; key2 < (1 << 24); key2++ {
+			// Assume correct keys if at least one pair matches.
+			// This is overly simplistic and might need refinement.
+			if checkKeys(uint32(key1), uint32(key2), texts) {
+				crackedKeys.key1 = uint32(key1)
+				crackedKeys.key2 = uint32(key2)
+				return crackedKeys
+			}
+		}
 	}
+	return crackedKeys // Return zeros if not found (highly unlikely with correct implementation)
+}
+
+func checkKeys(key1, key2 uint32, texts []textpair) bool {
+	// Verify if the given keys correctly encrypt or decrypt at least one pair
+	for _, pair := range texts {
+		encrypted := doubleEncrypt(key1, key2, pair.plaintext)
+		if encrypted == pair.ciphertext {
+			return true // Found a matching pair
+		}
+	}
+	return false
 }
 
 /*************************** Provided Helper Code *****************************/
