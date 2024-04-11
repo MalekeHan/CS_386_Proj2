@@ -11,6 +11,7 @@
 //		    "key_2": "7890ab"
 //		}
 
+
 package main
 
 import (
@@ -54,31 +55,10 @@ type keypair struct {
 // use, and you may define whatever helper functions or import whatever packages
 // you need.
 func crack(texts []textpair) keypair {
-	cPrimeMap := make(map[string]uint32)
-
-	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ { //use bit-wise here to loop 2^24 times and exhaust the space
-		encryptedMid := encrypt(keyGuess, texts[0].plaintext)     //do the inner encyption with whatever key we are in and the plaintext
-		cPrimeMap[hex.EncodeToString(encryptedMid[:])] = keyGuess // create a new entry in our map [c_prime |-> key_guess]
+	return keypair {
+		key1: 0,
+		key2: 0,
 	}
-
-	for keyGuess := uint32(0); keyGuess < (1 << 24); keyGuess++ { //use bit-wise here to loop 2^24 times and exhaust the space
-		decryptedMid := decrypt(keyGuess, texts[0].ciphertext)      //do decryption with whatever key we are in and the ciphertext in the same row as the plaintext
-		decryptedMidHex := hex.EncodeToString(decryptedMid[:])      // we now convert this to a hex value
-		if matchedKey, found := cPrimeMap[decryptedMidHex]; found { //checks if the hex of the decrpyted plaintext is a key in the cPrimeMap : E(k_0, m) = C' = D(k_1, c)
-
-			if testDoubleEncryption(matchedKey, keyGuess, texts[0].plaintext, texts[0].ciphertext) { // we use double encyption to verify if this is the actual correct key pair
-				return keypair{key1: matchedKey, key2: keyGuess}
-			}
-		}
-	}
-
-	return keypair{key1: 0, key2: 0} // return all 0s if nothing is found.
-}
-
-// verication function to test if a key pair is actually correct
-func testDoubleEncryption(key1, key2 uint32, plaintext, ciphertext [8]byte) bool {
-	testCiphertext := doubleEncrypt(key1, key2, plaintext)
-	return testCiphertext == ciphertext
 }
 
 /*************************** Provided Helper Code *****************************/
